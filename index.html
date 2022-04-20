@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>The Hand Trick</title>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<!-- Video for handtracker -->
+<div class="tracker">
+    <video id="myvideo"></video>
+    <canvas id="canvas" class="border"></canvas>
+    <div id="updatenote">hello</div>
+</div>
+<div class="data">
+    <div class="hand-1">
+        <p id="hand-x">X: <span>0</span></p>
+        <p id="hand-y">Y: <span>0</span></p>
+    </div>
+</div>
+
+<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+<script type="importmap">
+		{
+			"imports": {
+				"three": "./js/three.module.js"
+			}
+		}
+	</script>
+<script src="https://cdn.jsdelivr.net/npm/handtrackjs@latest/dist/handtrack.min.js"> </script>
+<script type="module">
+    import * as THREE from 'three';
+
+    import { DRACOLoader } from './jsm/loaders/DRACOLoader.js';
+
+    import { OrbitControls } from './jsm/controls/OrbitControls.js';
+
+    // Setting scene for 3D Object
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+    );
+    var vector = new THREE.Vector3();
+    var renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls( camera,renderer.domElement);
+
+
+    var bunny;
+    // Configure and create Draco decoder.
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath( 'js/libs/draco/' );
+    dracoLoader.setDecoderConfig( { type: 'js' } );
+
+    dracoLoader.load( './draco/bunny.drc', function ( geometry ) {
+
+        geometry.computeVertexNormals();
+
+        const material = new THREE.MeshStandardMaterial( { color: 0x606060 } );
+        var mesh = new THREE.Mesh( geometry, material );
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        bunny=mesh;
+        scene.add( mesh );
+
+        // Release decoder resources.
+        dracoLoader.dispose();
+
+    } );
+
+
+    // scene.background = new THREE.Color( 0x443333 );
+    // scene.fog = new THREE.Fog( 0x443333, 1, 4 );
+
+    // Lights
+    const hemiLight = new THREE.HemisphereLight( 0x443333, 0x111122 );
+    scene.add( hemiLight );
+
+    const spotLight = new THREE.SpotLight();
+    spotLight.angle = Math.PI / 16;
+    spotLight.penumbra = 0.5;
+    spotLight.castShadow = true;
+    spotLight.position.set( - 1, 1, 1 );
+    scene.add( spotLight );
+
+    // // helper
+    // scene.add( new THREE.AxesHelper( 20 ) );
+
+    // Ground
+    const plane = new THREE.Mesh(
+        new THREE.PlaneGeometry( 8, 8 ),
+        new THREE.MeshPhongMaterial( { color: 0x999999, specular: 0x101010 } )
+    );
+    plane.rotation.x = - Math.PI / 2;
+    plane.position.y = 0.03;
+    plane.receiveShadow = true;
+    scene.add( plane );
+
+    // // Creating 3D object
+    // var geometry = new THREE.BoxGeometry(1, 2, 1);
+    // var material = new THREE.MeshBasicMaterial({
+    //     color: "rgb(3, 197, 221)",
+    //     wireframe: true,
+    //     wireframeLinewidth: 1
+    // });
+    // var cube = new THREE.Mesh(geometry, material);
+    // scene.add(cube);
+    // camera.position.z = 0.5;
+    camera.position.z = 0.5;
+    controls.update();
+
+    // // Optional animation to rotate the element
+    // var animate = function() {
+    //     requestAnimationFrame(animate);
+    //     // cube.rotation.x += 0.01;
+    //     // cube.rotation.y += 0.01;
+    //     renderer.render(scene, camera);
+    // };
+    //
+    // animate();
+
+    // Creating Canavs for video Input
+    const video = document.getElementById("myvideo");
+    const handimg = document.getElementById("handimage");
+    const canvas = document.getElementById("canvas");
+    const context = canvas.getContext("2d");
+    let trackButton = document.getElementById("trackbutton");
+    let updateNote = document.getElementById("updatenote");
+
+    let imgindex = 1;
+    let isVideo = false;
+    let model = null;
+
+    // Params to initialize Handtracking js
+    const modelParams = {
+        flipHorizontal: true,
+        maxNumBoxes: 1,
+        iouThreshold: 0.5,
+        scoreThreshold: 0.7
+    };
+
+    handTrack.load(modelParams).then(lmodel => {
+        model = lmodel;
+        updateNote.innerText = "Loaded Model!";
+        // trackButton.disabled = false;
+    });
+
+    toggleVideo()
+
+    // Method to start a video
+    function startVideo() {
+        handTrack.startVideo(video).then(function(status) {
+            if (status) {
+                updateNote.innerText = "Video started. Now tracking";
+                isVideo = true;
+                runDetection();
+            } else {
+                updateNote.innerText = "Please enable video";
+            }
+        });
+    }
+
+    // Method to toggle a video
+    function toggleVideo() {
+        if (!isVideo) {
+            updateNote.innerText = "Starting video";
+            startVideo();
+        } else {
+            updateNote.innerText = "Stopping video";
+            handTrack.stopVideo(video);
+            isVideo = false;
+            updateNote.innerText = "Video stopped";
+        }
+    }
+
+    //Method to detect movement
+    function runDetection() {
+        model.detect(video).then(predictions => {
+            model.renderPredictions(predictions, canvas, context, video);
+            if (isVideo) {
+                requestAnimationFrame(runDetection);
+            }
+            if (predictions.length > 0) {
+                changeData(predictions[0].bbox);
+            }
+        });
+    }
+
+    //Method to Change prediction data into useful information
+    function changeData(value) {
+        // console.log(value[0])
+        // console.log(value[1])
+        // console.log(value[2])
+        // console.log(value[3])
+        let midvalX = value[0] + value[2] / 2;
+        let midvalY = value[1] + value[3] / 2;
+        // let width=Math.abs(value[2])
+        // let height=Math.abs(value[3])
+        // let size=value.w*value.h
+
+        document.querySelector(".hand-1 #hand-x span").innerHTML = midvalX;
+        document.querySelector(".hand-1 #hand-y span").innerHTML = midvalY;
+
+        moveTheBox({ x: (midvalX - 300) / 600, y: (midvalY - 250) / 500 });
+    }
+
+    //Method to use prediction data to render cude accordingly
+    function moveTheBox(value) {
+        bunny.position.x = ((window.innerWidth * value.x) / window.innerWidth) * 5;
+        bunny.position.y = -((window.innerHeight * value.y) / window.innerHeight) * 5;
+        // document.querySelector(".hand-1 #hand-x span").innerHTML = value.w/5;
+        // // document.querySelector(".hand-1 #hand-y span").innerHTML = height;
+        // camera.position.x = -value.w/100
+        // camera.position.y = -value.w/100
+        // camera.position.z = -value.w/100
+        renderer.render(scene, camera);
+
+    }
+</script>
+</body>
+</html>
