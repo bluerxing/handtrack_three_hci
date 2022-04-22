@@ -1,4 +1,4 @@
-# handtrack_three_hci
+# handtrack_and_multitouch_bunny
 
 A HCI assignment. 
 Real-time camera Hand Gesture control(with Handtrack.js) a 3D bunny model(from Three.js Draco loader)
