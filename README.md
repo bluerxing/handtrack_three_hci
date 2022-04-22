@@ -1,6 +1,7 @@
 # handtrack_and_multitouch_bunny
 
 A HCI assignment. 
+
 Real-time camera Hand Gesture control(with Handtrack.js) a 3D bunny model(from Three.js Draco loader)
 also enable multi-touch control 3D lens (by OrbitControls of Three.js)
 
@@ -10,9 +11,9 @@ the code is develeped on the basis of demo (https://github.com/sarthology/thehan
 to run this web interactive demo:
 
 1. open terminal run: 
-  git clone https://github.com/bluerxing/handtrack_three_hci.git
-  cd handtrack_three_hci
-  python -m http.server
+  - git clone https://github.com/bluerxing/handtrack_three_hci.git 
+  - cd handtrack_three_hci
+  - python -m http.server
 2. access link in your brower 
   http://127.0.0.1:8000
 3. wait for website to finish loading and allow camera open
