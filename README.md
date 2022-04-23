@@ -5,7 +5,7 @@ A HCI assignment.
 Real-time camera Hand Gesture control(with Handtrack.js) a 3D bunny model(from Three.js Draco loader)
 also enable multi-touch control 3D lens (by OrbitControls of Three.js)
 
-the code is develeped on the basis of demo (https://github.com/sarthology/thehandtrick)
+the code is developed on the basis of demo (https://github.com/sarthology/thehandtrick)
 
 
 to run this web interactive demo:
